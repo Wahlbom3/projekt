@@ -2,40 +2,40 @@
 #include <ADXL362.h>
 #include <Servo.h>
 
-#define CS 10 // Chip select pin
-#define SERVO_PIN 8 // Pin for the servo
-#define FALL_THRESHOLD 100 // Adjusted threshold to detect free fall
-#define MOVE_DELAY 1000 // Delay to wait before returning to the original position
+#define CS 10
+#define SERVO_PIN 8 // Servons pin
+#define FALL_THRESHOLD 100 // Tröskelvärde för fall
+#define MOVE_DELAY 1000 // Fördröjning innan servot återgår till ursprungsläget
 
-ADXL362 accelerometer; // Creation of the object
-Servo myServo; // Create a Servo object
-int currentServoAngle = 0; // Track the current angle of the servo (start at 0 degrees)
-bool servoMoved = false; // Flag to check if the servo has moved
-bool movingToRight = true; // Direction flag to track servo movement
+ADXL362 accelerometer; // Skapa ett accelerometer-objekt
+Servo myServo; // Skapa ett Servo-objekt
+int currentServoAngle = 0; // Håller koll på servons aktuella vinkel (start vid 0 grader)
+bool servoMoved = false; // Flagga för att kontrollera om servot har rört sig
+bool movingToRight = true; // Riktningens flagga för att hålla reda på servots rörelseriktning
 
 void setup() {
-  Serial.begin(9600); // Initialization of serial communication
-  accelerometer.begin(CS); // Initialization of the accelerometer
-  accelerometer.beginMeasure(); // Initialization of the measurement
+  Serial.begin(9600); // Starta seriell kommunikation
+  accelerometer.begin(CS); // Initiera accelerometern
+  accelerometer.beginMeasure(); // Starta mätningen
   
-  myServo.attach(SERVO_PIN); // Attach the servo to pin 8
-  myServo.write(currentServoAngle); // Start the servo at the neutral position (0 degrees)
+  myServo.attach(SERVO_PIN); // Anslut servot till pin 8
+  myServo.write(currentServoAngle); // Starta servot i neutralläget (0 grader)
 
-  // Move the servo to 0 degrees first (desired starting position)
-  myServo.write(0); // Move to 0 degrees
-  delay(MOVE_DELAY); // Wait for a specified time
+  // Flytta servot till 0 grader först (önskat startläge)
+  myServo.write(0); // Flytta till 0 grader
+  delay(MOVE_DELAY); // Vänta en specificerad tid
   
-  // Move the servo to 90 degrees and wait
-  myServo.write(90); // Move to 90 degrees
-  delay(MOVE_DELAY); // Wait for a specified time
+  // Flytta servot till 90 grader och vänta
+  myServo.write(90); // Flytta till 90 grader
+  delay(MOVE_DELAY); // Vänta en specificerad tid
 }
 
 void loop() {
-  // Acquisition of accelerometer data
+  // Inhämtning av accelerometerdata
   int x, y, z, t;
   accelerometer.readXYZTData(x, y, z, t);
 
-  // Display raw data
+  // Visa rådata
   Serial.print("x = ");
   Serial.print(x);
   Serial.print("\t y = ");
@@ -45,28 +45,28 @@ void loop() {
   Serial.print("\t t = ");
   Serial.println(t);
 
-  // Check if the z value indicates a fall and if the servo hasn't moved yet
+  // Kontrollera om z-värdet indikerar ett fall och om servot ännu inte har rört sig
   if (abs(z) < FALL_THRESHOLD && !servoMoved) {
-    Serial.println("Fall detected! Moving servo...");
+    Serial.println("Fall upptäckt! Flyttar servot...");
 
     if (movingToRight) {
-      myServo.write(90); // Move to 90 degrees
+      myServo.write(90); // Flytta till 90 grader
     } else {
-      myServo.write(0); // Move back to 0 degrees
+      myServo.write(0); // Flytta tillbaka till 0 grader
     }
     
-    delay(MOVE_DELAY); // Wait for a specified time before returning
+    delay(MOVE_DELAY); // Vänta en specificerad tid innan återgång
 
-    // Toggle the direction for the next movement
-    movingToRight = !movingToRight; // Switch direction
-    servoMoved = true; // Set the flag to indicate the servo has moved
+    // Växla riktning inför nästa rörelse
+    movingToRight = !movingToRight; // Byt riktning
+    servoMoved = true; // Sätt flaggan för att indikera att servot har rört sig
   }
 
-  // Check if the servo has reached the target angle and reset the flag
+  // Kontrollera om servot har nått målvinkeln och återställ flaggan
   if (servoMoved && (myServo.read() == (movingToRight ? 90 : 0))) {
-    servoMoved = false; // Reset the flag to allow the servo to move again
+    servoMoved = false; // Återställ flaggan för att tillåta servot att röra sig igen
   }
 
-  // Wait a bit before the next acquisition
+  // Vänta en stund innan nästa mätning
   delay(100);
 }
