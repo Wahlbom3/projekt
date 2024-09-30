@@ -4,17 +4,17 @@
 
 #define CS 10
 #define SERVO_PIN 8 // Servons pin
-#define FALL_THRESHOLD 300 // Tröskelvärde för fall
+#define FALL_THRESHOLD 100 // Tröskelvärde för fall
 #define MOVE_DELAY 1000 // Fördröjning innan servot återgår till ursprungsläget
 
 ADXL362 accelerometer; // Skapa ett accelerometer-objekt
 Servo myServo; // Skapa ett Servo-objekt
 int currentServoAngle = 0; // Håller koll på servons aktuella vinkel (start vid 0 grader)
- // Riktningens flagga för att hålla reda på servots rörelseriktning
+bool servoMoved = false; // Flagga för att kontrollera om servot har rört sig
+bool movingToRight = true; // Riktningens flagga för att hålla reda på servots rörelseriktning
 
 void setup() {
   Serial.begin(9600); // Starta seriell kommunikation
-  SPI.end();
   accelerometer.begin(CS); // Initiera accelerometern
   accelerometer.beginMeasure(); // Starta mätningen
   
@@ -26,7 +26,7 @@ void setup() {
   delay(MOVE_DELAY); // Vänta en specificerad tid
   
   // Flytta servot till 90 grader och vänta
-  myServo.write(120); // Flytta till 90 grader
+  myServo.write(90); // Flytta till 90 grader
   delay(MOVE_DELAY); // Vänta en specificerad tid
 }
 
@@ -46,29 +46,26 @@ void loop() {
   Serial.println(t);
 
   // Kontrollera om z-värdet indikerar ett fall och om servot ännu inte har rört sig
-  if (z < FALL_THRESHOLD) {
-    Serial.println("Fall upptäckt! Startar klockan"); //Om ett acceleration upptäcks, starta en klocka.
-    delay(400); // 0.32 sekunder är tiden det tar att falla 0.5 meter.
-    accelerometer.readXYZTData(x, y, z, t);
+  if (abs(z) < FALL_THRESHOLD && !servoMoved) {
+    Serial.println("Fall upptäckt! Flyttar servot...");
 
-    if (z < FALL_THRESHOLD) { //Efter 400ms kontrolleras det om fallet fortfarnade varar, om så utlöses fallskärmen. 
-      Serial.println("Längre fall upptäck! Utlöser fallskärm");
-
-      
-      myServo.write(-20); // Flytta tillbaka till 120 grader
-      
-     
-       // Sätt flaggan för att indikera att servot har rört sig
+    if (movingToRight) {
+      myServo.write(90); // Flytta till 90 grader
+    } else {
+      myServo.write(0); // Flytta tillbaka till 0 grader
     }
+    
     delay(MOVE_DELAY); // Vänta en specificerad tid innan återgång
 
-     
+    // Växla riktning inför nästa rörelse
+    movingToRight = !movingToRight; // Byt riktning
+    servoMoved = true; // Sätt flaggan för att indikera att servot har rört sig
   }
 
   // Kontrollera om servot har nått målvinkeln och återställ flaggan
-  //if (servoMoved && (myServo.read() == (movingToRight ? 120 : -20))) {
-   // Återställ flaggan för att tillåta servot att röra sig igen
- // }
+  if (servoMoved && (myServo.read() == (movingToRight ? 90 : 0))) {
+    servoMoved = false; // Återställ flaggan för att tillåta servot att röra sig igen
+  }
 
   // Vänta en stund innan nästa mätning
   delay(100);
